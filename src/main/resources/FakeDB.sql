@@ -1,0 +1,19 @@
+CREATE TABLE IF NOT EXISTS users (
+id BIGSERIAL PRIMARY KEY,
+email VARCHAR(255) NOT NULL UNIQUE,
+passwordhash VARCHAR(60) NOT NULL,
+role VARCHAR(24) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+id BIGSERIAL PRIMARY KEY,
+occurredat TIMESTAMP NOT NULL DEFAULT now(),
+identifier VARCHAR(255) NOT NULL,
+user_id BIGINT NULL REFERENCES users(id) ON DELETE SET NULL,
+ip VARCHAR(64) NOT NULL,
+success BOOLEAN NOT NULL,
+reason VARCHAR(32) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_identifier_time
+    ON login_attempts(identifier, occurredat);
