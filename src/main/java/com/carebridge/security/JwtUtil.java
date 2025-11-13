@@ -15,7 +15,7 @@ public class JwtUtil {
     public JwtUtil(String secret, String issuer, long ttlSeconds) {
         this.alg = Algorithm.HMAC256(secret);
         this.issuer = issuer;
-        this.ttlSeconds = ttlSeconds;
+        this.ttlSeconds = ttlSeconds; // e.g. 900 (15m)
     }
 
     public String create(long userId, String role) {

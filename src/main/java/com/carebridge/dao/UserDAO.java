@@ -1,23 +1,27 @@
 package com.carebridge.dao;
 
 import com.carebridge.models.User;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import lombok.RequiredArgsConstructor;
+import org.hibernate.SessionFactory;
+import org.hibernate.Session;
 
-@RequiredArgsConstructor
 public class UserDAO {
-    private final EntityManager em;
+    private final SessionFactory sf;
+
+    public UserDAO(SessionFactory sf) { this.sf = sf; }
 
     public User findByEmail(String email) {
-        try {
-            return em.createQuery("SELECT u FROM User u WHERE u.email = :e", User.class)
+        try (Session s = sf.openSession()) {
+            return s.createQuery("from User u where u.email = :e", User.class)
                     .setParameter("e", email)
-                    .getSingleResult();
-        } catch (NoResultException ex) {
-            return null;
+                    .uniqueResult();
         }
     }
 
-    public void save(User u) { em.persist(u); }
+    public void save(User u) {
+        try (Session s = sf.openSession()) {
+            var tx = s.beginTransaction();
+            s.persist(u);
+            tx.commit();
+        }
+    }
 }

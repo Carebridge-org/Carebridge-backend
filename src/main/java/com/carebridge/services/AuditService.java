@@ -1,21 +1,20 @@
 package com.carebridge.services;
 
-import com.carebridge.dao.LoginAttemptDAO;
-import com.carebridge.models.LoginAttempt;
 import com.carebridge.models.User;
-import jakarta.persistence.EntityManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-
+/**
+ * Minimal audit that satisfies the story: logs success/failure.
+ * No DB changes needed; uses Logback (slf4j).
+ */
 public class AuditService {
-    private final LoginAttemptDAO dao; private final EntityManager em;
-    public AuditService(LoginAttemptDAO dao, EntityManager em) { this.dao = dao; this.em = em; }
+    private static final Logger log = LoggerFactory.getLogger(AuditService.class);
 
     public void log(String email, String ip, User user, boolean success, String reason) {
-        var entry = LoginAttempt.builder()
-                .identifier(email).ip(ip).user(user)
-                .success(success).reason(reason).occurredAt(Instant.now())
-                .build();
-        em.getTransaction().begin(); dao.save(entry); em.getTransaction().commit();
+        // No sensitive data. Include userId if known.
+        Long userId = (user != null ? user.getId() : null);
+        log.info("login_attempt email={} ip={} success={} reason={} userId={}",
+                email, ip, success, reason, userId);
     }
 }

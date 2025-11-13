@@ -1,7 +1,6 @@
 package com.carebridge;
 
 import com.carebridge.models.User;
-import com.carebridge.services.UserService;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 

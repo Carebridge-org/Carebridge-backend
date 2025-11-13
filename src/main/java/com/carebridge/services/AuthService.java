@@ -6,6 +6,7 @@ import org.mindrot.jbcrypt.BCrypt;
 
 public class AuthService {
     private final UserDAO users;
+
     public AuthService(UserDAO users) { this.users = users; }
 
     public User authenticate(String email, String rawPassword) {
