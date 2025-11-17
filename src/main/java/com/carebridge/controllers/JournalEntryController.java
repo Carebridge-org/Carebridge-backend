@@ -46,6 +46,21 @@ public class JournalEntryController {
         });
     }
 
+    //Finding all entries by a journal ID
+    public void findAllEntriesByJournal(Javalin app) {
+        app.get("/journals/{journalId}/entries", ctx -> {
+            try {
+                Long journalId = Long.parseLong(ctx.pathParam("journalId"));
+                ctx.json(service.getEntryIdsForJournal(journalId));
+            } catch (IllegalArgumentException e) {
+                ctx.status(400).result(e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).result("Internal server error");
+            }
+        });
+    }
+
     //Possibly move the app.post-part to routes later
     private void createJournalEntry(Javalin app) {
         app.post("/journals/{journalId}/journal-entries", ctx -> {
