@@ -34,9 +34,17 @@ public class AuthController {
             limiter.reset(key);
             audit.log(email, ctx.ip(), user, true, "OK");
 
-            String token = jwt.create(user.getId(), user.getRole());
+            String token = jwt.create(user.getId(), user.getRole().name());
             // Frontend decides where to go; we include role so they can choose a landing page
-            ctx.json(Map.of("token", token, "user", Map.of("id", user.getId(), "email", user.getEmail(), "role", user.getRole())));
+            ctx.json(Map.of(
+                    "token", token,
+                    "user", Map.of(
+                            "id", user.getId(),
+                            "username", user.getUsername(),
+                            "role", user.getRole().name()
+                    )
+            ));
+
         });
 
         // Minimal JWT middleware: decode token -> ctx attributes
