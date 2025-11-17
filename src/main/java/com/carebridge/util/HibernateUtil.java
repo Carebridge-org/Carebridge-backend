@@ -36,6 +36,11 @@ public class HibernateUtil {
 
             config.addAnnotatedClass(com.carebridge.models.User.class);
             config.addAnnotatedClass(com.carebridge.models.LoginAttempt.class);
+            config.addAnnotatedClass(com.carebridge.models.CareWorker.class);
+            config.addAnnotatedClass(com.carebridge.models.Guardian.class);
+            config.addAnnotatedClass(com.carebridge.models.Journal.class);
+            config.addAnnotatedClass(com.carebridge.models.JournalEntry.class);
+            config.addAnnotatedClass(com.carebridge.models.Resident.class);
 
             return config.buildSessionFactory();
         } catch (Exception ex) {

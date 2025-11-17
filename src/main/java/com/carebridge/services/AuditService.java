@@ -17,4 +17,5 @@ public class AuditService {
         log.info("login_attempt email={} ip={} success={} reason={} userId={}",
                 email, ip, success, reason, userId);
     }
+
 }
