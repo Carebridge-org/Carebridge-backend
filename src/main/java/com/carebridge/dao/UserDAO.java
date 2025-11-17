@@ -1,27 +1,27 @@
 package com.carebridge.dao;
 
 import com.carebridge.models.User;
-import com.carebridge.util.HibernateUtil;
+import org.hibernate.SessionFactory;
 import org.hibernate.Session;
-import org.hibernate.Transaction;
-import java.util.List;
 
 public class UserDAO {
-    public void save(User user) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            session.persist(user);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
+    private final SessionFactory sf;
+
+    public UserDAO(SessionFactory sf) { this.sf = sf; }
+
+    public User findByEmail(String email) {
+        try (Session s = sf.openSession()) {
+            return s.createQuery("from User u where u.email = :e", User.class)
+                    .setParameter("e", email)
+                    .uniqueResult();
         }
     }
 
-    public List<User> findAll() {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("from User", User.class).list();
+    public void save(User u) {
+        try (Session s = sf.openSession()) {
+            var tx = s.beginTransaction();
+            s.persist(u);
+            tx.commit();
         }
     }
 }

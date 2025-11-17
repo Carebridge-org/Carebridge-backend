@@ -1,22 +1,20 @@
 package com.carebridge.models;
 
 import jakarta.persistence.*;
+import lombok.*;
 
-@Entity
-@Table(name = "users")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Entity @Table(name = "users")
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
+    @Column(nullable = false, unique = true, length = 255)
     private String email;
 
-    public User() {}
-    public User(String name, String email) {
-        this.name = name;
-        this.email = email;
-    }
+    @Column(nullable = false, length = 60) // BCrypt hash
+    private String passwordHash;
 
-    // getters & setters
+    @Column(nullable = false, length = 24) // GUARDIAN|PARENT|CASE_WORKER|PEDAGOGUE|ADMIN
+    private String role;
 }
