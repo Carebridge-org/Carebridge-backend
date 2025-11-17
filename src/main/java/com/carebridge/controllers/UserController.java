@@ -83,8 +83,60 @@ public class UserController {
             ));
         });
 
-        // Your other routes here, unchanged…
+        //Registering af bruger
+        app.post("/auth/register", ctx -> {
+            String email = ctx.formParam("email");
+            String password = ctx.formParam("password");
+
+            if (email == null || password == null) {
+                ctx.status(400).json(Map.of("error","Missing fields"));
+                return;
+            }
+
+            email = email.trim().toLowerCase();
+
+            //Rate limit på ip(lidt extra sikkerhed mod bots, da vi ikke hoster via cloudflare)
+            String key = ("reg|" + ctx.ip()).toLowerCase();
+            if (limiter.isBlocked(key)) {
+                auditService.log(email, ctx.ip(), null, false, "REG_RATE_LIMIT");
+                ctx.status(429).json(Map.of(
+                        "error","Too many attempts. Try again later.",
+                        "retryAfterSec", limiter.secondsUntilUnblock(key)
+                ));
+                return;
+            }
+
+
+            //Try catch block så vi kan fange evt fejl
+            try {
+                var user = authService.register(email, password);
+                limiter.reset(key);
+
+                auditService.log(email, ctx.ip(), user, true, "REG_OK");
+                String token = jwt.create(user.getId(), user.getRole());
+                ctx.status(201).json(Map.of(
+                        "token", token,
+                        "user", Map.of(
+                                "id", user.getId(),
+                                "email", user.getEmail(),
+                                "role", user.getRole()
+                        )
+                ));
+            } catch (AuthService.EmailExistsException ex) {
+                limiter.registerFail(key);
+                auditService.log(email, ctx.ip(), null, false, "EMAIL_EXISTS");
+                ctx.status(409).json(Map.of("error", "Email already exists"));
+
+            } catch (Exception ex) {
+                limiter.registerFail(key);
+                auditService.log(email, ctx.ip(), null, false, "REG_ERROR");
+                ctx.status(500).json(Map.of("error", "Server error"));
+            }
+        });
     }
+
+
+
 
     private static String env(String k, String def) {
         String v = System.getenv(k);
