@@ -51,10 +51,6 @@ public class AuthService {
             case CAREWORKER:
                 u = new CareWorker(); // hvis du har flere klasser
                 break;
-
-            case RESIDENT:
-                u = new Resident();
-                break;
             default:
                 u = new User();
                 break;
