@@ -2,6 +2,9 @@ package com.carebridge.services;
 
 import com.carebridge.dao.UserDAO;
 import com.carebridge.enums.Role;
+import com.carebridge.models.CareWorker;
+import com.carebridge.models.Guardian;
+import com.carebridge.models.Resident;
 import com.carebridge.models.User;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -23,16 +26,40 @@ public class AuthService {
         return users.findByUsername(username);
     }
 
-    public User registerFull(String username, String rawPassword, String displayName,
-                             String displayEmail, String displayPhone,
-                             String internalEmail, String internalPhone,
-                             Role role) {
+    public User registerFull(
+            String username,
+            String rawPassword,
+            String displayName,
+            String displayEmail,
+            String displayPhone,
+            String internalEmail,
+            String internalPhone,
+            Role role
+    ) {
 
         if (users.findByUsername(username) != null) {
-            throw new EmailExistsException(); // Genbrug exception
+            throw new EmailExistsException();
         }
 
-        User u = new User();
+        User u;
+
+        switch (role) {
+            case GUARDIAN:
+                u = new Guardian();
+                break;
+
+            case CAREWORKER:
+                u = new CareWorker(); // hvis du har flere klasser
+                break;
+
+            case RESIDENT:
+                u = new Resident();
+                break;
+            default:
+                u = new User();
+                break;
+        }
+
         u.setUsername(username);
         u.setPasswordHash(hash(rawPassword));
         u.setDisplayName(displayName);
@@ -45,6 +72,7 @@ public class AuthService {
         users.save(u);
         return u;
     }
+
 
 
 
