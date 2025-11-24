@@ -1,34 +1,62 @@
 package com.carebridge.dao;
 
-import com.carebridge.models.User;
-import com.carebridge.util.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import com.carebridge.entities.User;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 public class UserDAO {
-    public void save(User user) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            session.persist(user);
-            tx.commit();
+    protected final EntityManagerFactory emf;
+    private final Logger logger = LoggerFactory.getLogger(UserDAO.class);
+
+    public UserDAO(EntityManagerFactory emf) {
+        this.emf = emf;
+    }
+
+    public User save(User user) {
+        try (EntityManager em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+            em.persist(user);
+            em.getTransaction().commit();
+            return user;
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
+            logger.error("Error persisting User to db", e);
+            throw new RuntimeException("Error persisting User to db. ", e);
+        }
+    }
+
+    public User findById(Long id) {
+        try (EntityManager em = emf.createEntityManager()) {
+            User user = em.find(User.class, id);
+            if (user == null) {
+                throw new RuntimeException("User not found with ID: " + id);
+            }
+            return user;
+        } catch (Exception e) {
+            logger.error("Error retrieving User from db", e);
+            throw new RuntimeException("Error retrieving User from db. ", e);
         }
     }
 
     public List<User> findAll() {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("from User", User.class).list();
+        try (EntityManager em = emf.createEntityManager()) {
+            List<User> users = em.createQuery("SELECT u FROM User u", User.class).getResultList();
+            if (users.isEmpty()) {
+                throw new EntityNotFoundException("No users found");
+            }
+            return users;
+        } catch (Exception e) {
+            logger.error("Error retrieving all Users from db", e);
+            throw new RuntimeException("Error retrieving all Users from db. ", e);
         }
     }
 
-    public User findById(Long authorUserId)
-    {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.get(User.class, authorUserId);
-        }
+
+    public User create(User user) {
+        return save(user);
     }
 }

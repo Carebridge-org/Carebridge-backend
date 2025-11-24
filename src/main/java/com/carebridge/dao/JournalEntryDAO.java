@@ -1,73 +1,84 @@
 package com.carebridge.dao;
 
-import com.carebridge.models.JournalEntry;
-import com.carebridge.util.HibernateUtil;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+import com.carebridge.entities.JournalEntry;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 public class JournalEntryDAO {
+    protected final EntityManagerFactory emf;
+    private final Logger logger = LoggerFactory.getLogger(JournalEntryDAO.class);
 
+    public JournalEntryDAO(EntityManagerFactory emf) {
+        this.emf = emf;
+    }
 
-    public void save(JournalEntry journalEntry) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            session.persist(journalEntry);
-            tx.commit();
+    public JournalEntry save(JournalEntry journalEntry) {
+        try (EntityManager em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+            em.persist(journalEntry);
+            em.getTransaction().commit();
+            return journalEntry;
         } catch (Exception e) {
-            e.printStackTrace();
-            if (tx != null) tx.rollback();
+            logger.error("Error persisting JournalEntry to db", e);
+            throw new RuntimeException("Error persisting JournalEntry to db. ", e);
         }
     }
 
-    public JournalEntry findById(Long id) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.get(JournalEntry.class, id);
+    public JournalEntry findById(Object id) {
+        try (EntityManager em = emf.createEntityManager()) {
+            JournalEntry entry = em.find(JournalEntry.class, id);
+            if (entry == null) {
+                throw new RuntimeException("JournalEntry not found with ID: " + id);
+            }
+            return entry;
+        } catch (Exception e) {
+            logger.error("Error retrieving JournalEntry from db", e);
+            throw new RuntimeException("Error retrieving JournalEntry from db. ", e);
         }
     }
 
     public List<JournalEntry> findAll() {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("from JournalEntry", JournalEntry.class).list();
+        try (EntityManager em = emf.createEntityManager()) {
+            List<JournalEntry> entries = em.createQuery("SELECT je FROM JournalEntry je", JournalEntry.class)
+                    .getResultList();
+            if (entries.isEmpty()) {
+                throw new EntityNotFoundException("No journal entries found");
+            }
+            return entries;
         }
     }
 
-    //Finding all entries by a certain journal ID
     public List<Long> getEntryIdsByJournalId(Long journalId) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery(
+        try (EntityManager em = emf.createEntityManager()) {
+            return em.createQuery(
                             "SELECT je.id FROM JournalEntry je WHERE je.journal.id = :journalId",
-                            Long.class
-                    )
+                            Long.class)
                     .setParameter("journalId", journalId)
-                    .list();
-        }
-    }
-
-    //CRUD operations
-    public void update(JournalEntry journalEntry) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            session.merge(journalEntry);
-            tx.commit();
+                    .getResultList();
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
+            logger.error("Error querying entry IDs by journalId", e);
+            throw new RuntimeException("Error querying entry IDs by journalId. ", e);
         }
     }
 
-    public void create(JournalEntry journalEntry) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            session.persist(journalEntry);
-            tx.commit();
+    public JournalEntry update(JournalEntry journalEntry) {
+        try (EntityManager em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+            JournalEntry merged = em.merge(journalEntry);
+            em.getTransaction().commit();
+            return merged;
         } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
+            logger.error("Error updating JournalEntry", e);
+            throw new RuntimeException("Error updating JournalEntry. ", e);
         }
     }
 
+    public JournalEntry create(JournalEntry journalEntry) {
+        return save(journalEntry);
+    }
 }

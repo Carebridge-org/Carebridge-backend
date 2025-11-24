@@ -7,9 +7,9 @@ import com.carebridge.dao.UserDAO;
 import com.carebridge.dtos.CreateJournalEntryRequestDTO;
 import com.carebridge.dtos.EditJournalEntryRequestDTO;
 import com.carebridge.dtos.JournalEntryResponseDTO;
-import com.carebridge.models.Journal;
-import com.carebridge.models.JournalEntry;
-import com.carebridge.models.User;
+import com.carebridge.entities.Journal;
+import com.carebridge.entities.JournalEntry;
+import com.carebridge.entities.User;
 
 import java.time.LocalDateTime;
 import java.util.List;

@@ -2,12 +2,10 @@ package com.carebridge.dao;
 
 import com.carebridge.entities.Journal;
 import com.carebridge.entities.JournalEntry;
-import com.carebridge.utils.HibernateUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityNotFoundException;
-import org.hibernate.Session;
-import org.hibernate.Transaction;
+
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,21 +36,8 @@ public class JournalDAO
             throw new RuntimeException("Error persisting object to db. ", e);
         }
     }
-    /*
-    public void save(Journal journal) {
-        Transaction tx = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            session.persist(journal);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        }
-    }
-    */
 
-    public Journal findById(Journal journal, Object id)
+    public Journal findById(Object id)
     {
         try (EntityManager em = emf.createEntityManager())
         {
@@ -70,13 +55,6 @@ public class JournalDAO
         }
     }
 
-    /*
-    public Journal findById(Long id) {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.get(Journal.class, id);
-        }
-    }
-     */
 
     public List<Journal> findAll()
     {
@@ -90,14 +68,6 @@ public class JournalDAO
             return journals;
         }
     }
-
-    /*
-    public List<Journal> findAll() {
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("from Journal", Journal.class).list();
-        }
-    }
-     */
 
     public void addEntryToJournal(Journal journal, JournalEntry journalEntry)
     {
@@ -114,20 +84,4 @@ public class JournalDAO
             throw new RuntimeException("Error updating journal with new entry. ", e);
         }
     }
-
-    /*
-    public void addEntryToJournal(Long journalId, Long journalEntryId) {
-        Transaction tx  = null;
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            tx = session.beginTransaction();
-            Journal journal = session.get(Journal.class, journalId);
-            JournalEntry journalEntry = session.get(JournalEntry.class, journalEntryId);
-            journal.addEntry(journalEntry);
-            tx.commit();
-        } catch (Exception e) {
-            if (tx != null) tx.rollback();
-            e.printStackTrace();
-        }
-    }
-     */
 }
