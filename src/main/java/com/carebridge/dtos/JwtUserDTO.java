@@ -14,6 +14,7 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class JwtUserDTO {
+    private Long id;
     private String username;
     @JsonIgnore
     private String password;

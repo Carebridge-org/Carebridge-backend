@@ -38,35 +38,22 @@ public class JournalEntryDAO implements IDAO<JournalEntry, Long>
         }
     }
 
-    public JournalEntry read(Long id)
-    {
-        try (EntityManager em = emf.createEntityManager())
-        {
-            JournalEntry entry = em.find(JournalEntry.class, id);
-            if (entry == null)
-            {
-                throw new RuntimeException("JournalEntry not found with ID: " + id);
-            }
-            return entry;
-        }
-        catch (Exception e)
-        {
+    public JournalEntry read(Long id) {
+        try (EntityManager em = emf.createEntityManager()) {
+            return em.find(JournalEntry.class, id); // returns null if not found
+        } catch (Exception e) {
             logger.error("Error retrieving JournalEntry from db", e);
             throw new RuntimeException("Error retrieving JournalEntry from db. ", e);
         }
     }
 
-    public List<JournalEntry> readAll()
-    {
-        try (EntityManager em = emf.createEntityManager())
-        {
-            List<JournalEntry> entries = em.createQuery("SELECT je FROM JournalEntry je", JournalEntry.class)
+    public List<JournalEntry> readAll() {
+        try (EntityManager em = emf.createEntityManager()) {
+            return em.createQuery("SELECT je FROM JournalEntry je", JournalEntry.class)
                     .getResultList();
-            if (entries.isEmpty())
-            {
-                throw new EntityNotFoundException("No journal entries found");
-            }
-            return entries;
+        } catch (Exception e) {
+            logger.error("Error retrieving all JournalEntries from db", e);
+            throw new RuntimeException("Error retrieving all JournalEntries from db. ", e);
         }
     }
 

@@ -5,6 +5,7 @@ import com.carebridge.dao.impl.*;
 import com.carebridge.dtos.CreateJournalEntryRequestDTO;
 import com.carebridge.dtos.EditJournalEntryRequestDTO;
 import com.carebridge.dtos.JournalEntryResponseDTO;
+import com.carebridge.dtos.JwtUserDTO;
 import com.carebridge.entities.JournalEntry;
 import com.carebridge.entities.Journal;
 import com.carebridge.entities.User;
@@ -41,38 +42,55 @@ public class JournalEntryController implements IController<JournalEntry, Long>
     public void create(Context ctx) {
         try {
             Long journalId = Long.parseLong(ctx.pathParam("journalId"));
-
             CreateJournalEntryRequestDTO requestDTO = ctx.bodyAsClass(CreateJournalEntryRequestDTO.class);
             requestDTO.setJournalId(journalId);
-            // TODO: replace hardcoded author with authenticated user ID
-            requestDTO.setAuthorUserId(2L);
 
-            // --- 1. Fetch Journal and Author ---
+            logger.debug("JournalEntryController-create: journalId={}, requestDTO title={}, content length={}, entryType={}, riskAssessment={}",
+                    journalId, requestDTO.getTitle(),
+                    requestDTO.getContent() != null ? requestDTO.getContent().length() : 0,
+                    requestDTO.getEntryType(), requestDTO.getRiskAssessment());
+
+            Object tokenUser = ctx.attribute("user");
+            logger.debug("JournalEntryController-create: tokenUser type={}, value={}",
+                    tokenUser != null ? tokenUser.getClass().getSimpleName() : "null", tokenUser);
+            Long userId = extractUserIdFromToken(tokenUser);
+            logger.debug("JournalEntryController-create: extracted userId={}", userId);
+            if (userId == null || userId <= 0) {
+                logger.warn("JournalEntryController-create: Unauthorized - invalid userId={}", userId);
+                ctx.status(401).json("{\"msg\":\"Unauthorized 1\"}");
+                return;
+            }
+
+            User author = userDAO.read(userId);
+            if (author == null) {
+                ctx.status(401).json("{\"msg\":\"Unauthorized 2\"}");
+                return;
+            }
+
             Journal journal = journalDAO.read(requestDTO.getJournalId());
             if (journal == null) {
-                throw new IllegalArgumentException("Journal not found with ID: " + requestDTO.getJournalId());
+                ctx.status(404).json("{\"msg\":\"Journal not found\"}");
+                return;
             }
 
-            User author = userDAO.read(requestDTO.getAuthorUserId());
-            if (author == null) {
-                throw new IllegalArgumentException("Author not found with ID: " + requestDTO.getAuthorUserId());
-            }
-
-            // --- 2. Validate Required Input ---
             if (requestDTO.getTitle() == null || requestDTO.getTitle().isBlank()) {
-                throw new IllegalArgumentException("Title is required.");
+                ctx.status(400).json("{\"msg\":\"Title is required\"}");
+                return;
             }
             if (requestDTO.getContent() == null || requestDTO.getContent().isBlank()) {
-                throw new IllegalArgumentException("Content is required.");
+                ctx.status(400).json("{\"msg\":\"Content is required\"}");
+                return;
             }
             if (requestDTO.getEntryType() == null) {
-                throw new IllegalArgumentException("Entry type is required.");
+                ctx.status(400).json("{\"msg\":\"Entry type is required\"}");
+                return;
             }
             if (requestDTO.getRiskAssessment() == null) {
-                throw new IllegalArgumentException("Risk assessment is required.");
+                ctx.status(400).json("{\"msg\":\"Risk assessment is required\"}");
+                return;
             }
 
-            // --- 3. Build entity ---
+            LocalDateTime now = LocalDateTime.now();
             JournalEntry entry = new JournalEntry();
             entry.setJournal(journal);
             entry.setAuthor(author);
@@ -80,16 +98,13 @@ public class JournalEntryController implements IController<JournalEntry, Long>
             entry.setContent(requestDTO.getContent());
             entry.setEntryType(requestDTO.getEntryType());
             entry.setRiskAssessment(requestDTO.getRiskAssessment());
-
-            LocalDateTime now = LocalDateTime.now();
             entry.setCreatedAt(now);
             entry.setUpdatedAt(now);
             entry.setEditCloseTime(now.plusHours(24));
 
-            // --- 4. Persist ---
             journalEntryDAO.create(entry);
+            journalDAO.addEntryToJournal(journal, entry);
 
-            // --- 5. Build response DTO ---
             JournalEntryResponseDTO responseDTO = new JournalEntryResponseDTO(
                     entry.getId(),
                     journal.getId(),
@@ -105,16 +120,11 @@ public class JournalEntryController implements IController<JournalEntry, Long>
 
             ctx.status(201).json(responseDTO);
 
-            // Add entry to journal (only if creation succeeded)
-            if (ctx.status().getCode() == 201) {
-                journalDAO.addEntryToJournal(journal, entry);
-            }
-
-        } catch (IllegalArgumentException e) {
-            ctx.status(400).result(e.getMessage());
+        } catch (NumberFormatException ex) {
+            ctx.status(400).json("{\"msg\":\"Invalid journalId\"}");
         } catch (Exception e) {
-            e.printStackTrace();
-            ctx.status(500).result("Internal server error");
+            logger.error("create journal entry failed", e);
+            ctx.status(500).json("{\"msg\":\"Internal error\"}");
         }
     }
 
@@ -178,6 +188,16 @@ public class JournalEntryController implements IController<JournalEntry, Long>
         }
     }
 
+    private Long extractUserIdFromToken(Object tokenUser) {
+        if (tokenUser instanceof JwtUserDTO ju) {
+            return ju.getId();
+        }
+        if (tokenUser instanceof com.carebridge.dtos.UserDTO du) {
+            return du.getId();
+        }
+        return null;
+    }
+
     @Override
     public void delete(Context ctx)
     {
@@ -195,6 +215,7 @@ public class JournalEntryController implements IController<JournalEntry, Long>
     {
         return null;
     }
+
 
     // Get entry details (logic moved from service)
     public void read(Context ctx) {

@@ -55,6 +55,7 @@ public class SecurityController implements ISecurityController {
                 User verified = securityDAO.getVerifiedUser(req.getEmail(), req.getPassword());
 
                 JwtUserDTO jwtUser = JwtUserDTO.builder()
+                        .id(verified.getId())
                         .username(verified.getEmail())
                         .roles(Set.of(verified.getRole().name()))
                         .build();
@@ -87,6 +88,7 @@ public class SecurityController implements ISecurityController {
                 User created = securityDAO.createUser(name, email, password);
 
                 JwtUserDTO jwtUser = JwtUserDTO.builder()
+                        .id(created.getId())
                         .username(created.getEmail())
                         .roles(Set.of(created.getRole().name()))
                         .build();
