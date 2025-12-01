@@ -194,12 +194,10 @@ Content-Type: application/json
 
 ### ---- JOURNAL & JOURNAL-ENTRY API (added requests) ----
 
-### 14) Create journal entry with no files
-### Note: authorUserId should correspond to an existing user in your test DB (hardcoded in controller)
+### 14) Create journal entry with no files - You must be logged in as a user
 POST {{url}}/journals/1/journal-entries
 Authorization: Bearer {{user_jwt}}
 Content-Type: application/json
-
 
 {
   "title": "Observation of morning routine",

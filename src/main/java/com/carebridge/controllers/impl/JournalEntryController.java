@@ -47,11 +47,6 @@ public class JournalEntryController implements IController<JournalEntry, Long>
             CreateJournalEntryRequestDTO requestDTO = ctx.bodyAsClass(CreateJournalEntryRequestDTO.class);
             requestDTO.setJournalId(journalId);
 
-            logger.debug("JournalEntryController-create: journalId={}, requestDTO title={}, content length={}, entryType={}, riskAssessment={}",
-                    journalId, requestDTO.getTitle(),
-                    requestDTO.getContent() != null ? requestDTO.getContent().length() : 0,
-                    requestDTO.getEntryType(), requestDTO.getRiskAssessment());
-
             //Hentning af User er taget fra EventController
             var tokenUser = ctx.attribute("user");
             String email = null;
@@ -59,11 +54,11 @@ public class JournalEntryController implements IController<JournalEntry, Long>
             else if (tokenUser instanceof com.carebridge.dtos.UserDTO du) email = du.getEmail();
             else if (tokenUser != null) email = tokenUser.toString();
 
-            if (email == null) throw new ApiRuntimeException(401, "Unauthorized 1");
+            if (email == null) throw new ApiRuntimeException(401, "Could not find user from token");
 
             User author = userDAO.readByEmail(email);
             if (author == null) {
-                ctx.status(401).json("{\"msg\":\"Unauthorized 2\"}");
+                ctx.status(401).json("{\"msg\":\"Author not found\"}");
                 return;
             }
 
@@ -186,16 +181,6 @@ public class JournalEntryController implements IController<JournalEntry, Long>
             e.printStackTrace();
             ctx.status(500).result("Internal server error");
         }
-    }
-
-    private Long extractUserIdFromToken(Object tokenUser) {
-        if (tokenUser instanceof JwtUserDTO ju) {
-            var u = userDAO.readByEmail(ju.getUsername());
-            return u != null ? u.getId() : null;
-        } else if (tokenUser instanceof com.carebridge.dtos.UserDTO du) {
-            return du.getId();
-        }
-        return null;
     }
 
     @Override
