@@ -9,6 +9,7 @@ import com.carebridge.dtos.JwtUserDTO;
 import com.carebridge.entities.JournalEntry;
 import com.carebridge.entities.Journal;
 import com.carebridge.entities.User;
+import com.carebridge.exceptions.ApiRuntimeException;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ public class JournalEntryController implements IController<JournalEntry, Long>
     private final JournalEntryDAO journalEntryDAO = JournalEntryDAO.getInstance();
     private final JournalDAO journalDAO = JournalDAO.getInstance();
     private final UserDAO userDAO = UserDAO.getInstance();
+
 
     // Finding all entries by a journal ID
     public void findAllEntriesByJournal(Context ctx) {
@@ -50,18 +52,16 @@ public class JournalEntryController implements IController<JournalEntry, Long>
                     requestDTO.getContent() != null ? requestDTO.getContent().length() : 0,
                     requestDTO.getEntryType(), requestDTO.getRiskAssessment());
 
-            Object tokenUser = ctx.attribute("user");
-            logger.debug("JournalEntryController-create: tokenUser type={}, value={}",
-                    tokenUser != null ? tokenUser.getClass().getSimpleName() : "null", tokenUser);
-            Long userId = extractUserIdFromToken(tokenUser);
-            logger.debug("JournalEntryController-create: extracted userId={}", userId);
-            if (userId == null || userId <= 0) {
-                logger.warn("JournalEntryController-create: Unauthorized - invalid userId={}", userId);
-                ctx.status(401).json("{\"msg\":\"Unauthorized 1\"}");
-                return;
-            }
+            //Hentning af User er taget fra EventController
+            var tokenUser = ctx.attribute("user");
+            String email = null;
+            if (tokenUser instanceof JwtUserDTO ju) email = ju.getUsername();
+            else if (tokenUser instanceof com.carebridge.dtos.UserDTO du) email = du.getEmail();
+            else if (tokenUser != null) email = tokenUser.toString();
 
-            User author = userDAO.read(userId);
+            if (email == null) throw new ApiRuntimeException(401, "Unauthorized 1");
+
+            User author = userDAO.readByEmail(email);
             if (author == null) {
                 ctx.status(401).json("{\"msg\":\"Unauthorized 2\"}");
                 return;
@@ -190,9 +190,9 @@ public class JournalEntryController implements IController<JournalEntry, Long>
 
     private Long extractUserIdFromToken(Object tokenUser) {
         if (tokenUser instanceof JwtUserDTO ju) {
-            return ju.getId();
-        }
-        if (tokenUser instanceof com.carebridge.dtos.UserDTO du) {
+            var u = userDAO.readByEmail(ju.getUsername());
+            return u != null ? u.getId() : null;
+        } else if (tokenUser instanceof com.carebridge.dtos.UserDTO du) {
             return du.getId();
         }
         return null;
